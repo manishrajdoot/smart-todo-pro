@@ -16,7 +16,7 @@ import { categorizeWithAI } from './services/aiService';
 import { getPriorityColor, getCategoryColor } from './utils/helpers';
 
 // ============================================================
-// COMPONENTS (same as before, with minor improvements)
+// COMPONENTS
 // ============================================================
 
 function ProgressBar({ progress }) {
@@ -94,7 +94,6 @@ function BottomNav({ view, setView }) {
   );
 }
 
-// Weather Widget with improved location fallback
 function WeatherWidget() {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -106,18 +105,21 @@ function WeatherWidget() {
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto&current=temperature_2m,relative_humidity_2m,wind_speed_10m`
       );
       const data = await res.json();
-      // Try Open‑Meteo geocoding first
       let city = '';
       let country = '';
-      const geoRes = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?latitude=${lat}&longitude=${lon}&count=1`
-      );
-      const geoData = await geoRes.json();
-      if (geoData.results && geoData.results.length > 0) {
-        city = geoData.results[0].name || '';
-        country = geoData.results[0].country || '';
-      } else {
-        // Fallback: IP‑based location (if we don't have coords from geolocation, we won't reach here)
+      try {
+        const geoRes = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?latitude=${lat}&longitude=${lon}&count=1`
+        );
+        const geoData = await geoRes.json();
+        if (geoData.results && geoData.results.length > 0) {
+          city = geoData.results[0].name || '';
+          country = geoData.results[0].country || '';
+        }
+      } catch (e) {
+        // fallback
+      }
+      if (!city) {
         const ipRes = await fetch('https://ipapi.co/json/');
         const ipData = await ipRes.json();
         city = ipData.city || '';
@@ -143,7 +145,6 @@ function WeatherWidget() {
       navigator.geolocation.getCurrentPosition(
         (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
         () => {
-          // Fallback to IP
           fetch('https://ipapi.co/json/')
             .then(res => res.json())
             .then(data => {
@@ -221,7 +222,6 @@ function WeatherWidget() {
   );
 }
 
-// LiveClock with auto‑detected timezone + manual override
 function LiveClock({ countryCode = 'US', manualTimezone = null }) {
   const [time, setTime] = useState(new Date());
 
@@ -291,7 +291,6 @@ function LiveClock({ countryCode = 'US', manualTimezone = null }) {
   );
 }
 
-// Stats Widget (unchanged)
 function StatsWidget({ completed, total, streak, points, badges }) {
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
   return (
@@ -343,11 +342,10 @@ function StatsWidget({ completed, total, streak, points, badges }) {
   );
 }
 
-// ---------- PREDICTIVE SUGGESTION (Level 2) ----------
+// ---------- SMART SUGGESTION ----------
 function SmartSuggestion({ tasks }) {
   const suggestion = useMemo(() => {
     if (tasks.length === 0) return null;
-    // Find the most urgent task: highest priority + earliest due date (if any)
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     const sorted = [...tasks]
       .filter(t => !t.completed)
@@ -355,7 +353,6 @@ function SmartSuggestion({ tasks }) {
         const pA = priorityOrder[a.priority] ?? 1;
         const pB = priorityOrder[b.priority] ?? 1;
         if (pA !== pB) return pA - pB;
-        // If same priority, earlier due date first
         const dA = a.dueDate ? new Date(a.dueDate) : new Date(9999, 11, 31);
         const dB = b.dueDate ? new Date(b.dueDate) : new Date(9999, 11, 31);
         return dA - dB;
@@ -381,10 +378,7 @@ function SmartSuggestion({ tasks }) {
         </div>
       </div>
       <button
-        onClick={() => {
-          // focus on that task? we can scroll or highlight
-          toast('Focus on this task!', { duration: 2000 });
-        }}
+        onClick={() => toast('Focus on this task!', { duration: 2000 })}
         className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
       >
         <Target size={18} style={{ color: 'var(--accent)' }} />
@@ -393,7 +387,7 @@ function SmartSuggestion({ tasks }) {
   );
 }
 
-// ---------- SUBTASK LIST (unchanged) ----------
+// ---------- SUBTASK LIST ----------
 function SubtaskList({ subtasks, onToggle, onAdd, onDelete }) {
   const [newSubtask, setNewSubtask] = useState('');
   const handleAdd = () => {
@@ -431,7 +425,7 @@ function SubtaskList({ subtasks, onToggle, onAdd, onDelete }) {
   );
 }
 
-// ---------- POMODORO (unchanged) ----------
+// ---------- POMODORO ----------
 function PomodoroTimer() {
   const [minutes, setMinutes] = useState(25);
   const [seconds, setSeconds] = useState(0);
@@ -488,7 +482,7 @@ function PomodoroTimer() {
   );
 }
 
-// ---------- FOCUS MODE (unchanged) ----------
+// ---------- FOCUS MODE ----------
 function FocusMode({ task, onExit }) {
   const [time, setTime] = useState(0);
   useEffect(() => {
@@ -505,17 +499,17 @@ function FocusMode({ task, onExit }) {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
   return (
-    <div className="focus-overlay">
-      <button onClick={onExit} className="exit-btn">✕</button>
+    <div className="fixed inset-0 z-50 bg-gray-900 flex flex-col items-center justify-center text-white">
+      <button onClick={onExit} className="absolute top-4 right-4 p-2 hover:bg-gray-700 rounded-full transition-colors text-2xl">✕</button>
       <h2 className="text-3xl font-bold mb-4">🎯 Focus Mode</h2>
-      <p className="task-title">{task?.title || 'Focus on your task'}</p>
-      <div className="time-display">{formatTime(time)}</div>
-      <button onClick={onExit} className="exit-focus-btn">Exit Focus</button>
+      <p className="text-xl text-gray-300 mb-8">{task?.title || 'Focus on your task'}</p>
+      <div className="text-7xl font-bold text-blue-400 mb-8">{formatTime(time)}</div>
+      <button onClick={onExit} className="px-8 py-3 bg-blue-500 rounded-xl hover:bg-blue-600 transition-colors text-white text-lg">Exit Focus</button>
     </div>
   );
 }
 
-// ---------- CALENDAR VIEW (unchanged) ----------
+// ---------- CALENDAR VIEW ----------
 function CalendarView({ selectedCountry, holidays, loading }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStart = startOfMonth(currentMonth);
@@ -540,15 +534,9 @@ function CalendarView({ selectedCountry, holidays, loading }) {
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={prevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-          ◀
-        </button>
-        <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-          {format(currentMonth, 'MMMM yyyy')}
-        </h2>
-        <button onClick={nextMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-          ▶
-        </button>
+        <button onClick={prevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">◀</button>
+        <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{format(currentMonth, 'MMMM yyyy')}</h2>
+        <button onClick={nextMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">▶</button>
       </div>
       <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
         {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d}>{d}</div>)}
@@ -560,7 +548,9 @@ function CalendarView({ selectedCountry, holidays, loading }) {
           return (
             <div
               key={idx}
-              className={`calendar-day ${isTodayDate ? 'today' : ''}`}
+              className={`aspect-square flex flex-col items-center justify-center rounded-lg transition-all ${
+                isTodayDate ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+              } ${dayHolidays.length > 0 ? 'cursor-pointer' : ''}`}
               onClick={() => {
                 if (dayHolidays.length > 0) {
                   const names = dayHolidays.map(h => h.name).join('\n');
@@ -568,14 +558,13 @@ function CalendarView({ selectedCountry, holidays, loading }) {
                 }
               }}
             >
-              <span className="text-sm">{format(day, 'd')}</span>
+              <span className={`text-sm ${isTodayDate ? 'font-bold text-blue-600 dark:text-blue-400' : ''}`} style={{ color: isTodayDate ? undefined : 'var(--text-primary)' }}>
+                {format(day, 'd')}
+              </span>
               {dayHolidays.length > 0 && (
-                <div className={`holiday-dot ${dayHolidays.length > 1 ? 'multiple' : ''}`}>
-                  {dayHolidays.length > 1 ? (
-                    dayHolidays.slice(0, 3).map((_, i) => <span key={i} />)
-                  ) : (
-                    <span />
-                  )}
+                <div className="flex gap-0.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400" />
+                  {dayHolidays.length > 1 && <span className="text-[8px]" style={{ color: 'var(--text-muted)' }}>+{dayHolidays.length-1}</span>}
                 </div>
               )}
             </div>
@@ -589,7 +578,7 @@ function CalendarView({ selectedCountry, holidays, loading }) {
   );
 }
 
-// ---------- ANALYTICS (unchanged) ----------
+// ---------- ANALYTICS ----------
 function AnalyticsWidget({ tasks, completed, total, streak }) {
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
   const cats = tasks.reduce((acc, t) => {
@@ -679,7 +668,7 @@ function AnalyticsWidget({ tasks, completed, total, streak }) {
   );
 }
 
-// ---------- SETTINGS WIDGET (with Timezone) ----------
+// ---------- SETTINGS WIDGET ----------
 function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, importTasks, clearCompleted, timezone, setTimezone }) {
   const themes = [
     { id: 'default', name: 'Default', color: '#3b82f6' },
@@ -689,7 +678,6 @@ function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, i
     { id: 'midnight', name: 'Midnight', color: '#8b5cf6' },
   ];
 
-  // List of common timezones
   const timezones = [
     'America/New_York', 'America/Los_Angeles', 'America/Chicago', 'America/Denver',
     'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Moscow',
@@ -716,7 +704,7 @@ function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, i
           </button>
         </div>
 
-        {/* Theme Selector */}
+        {/* Theme */}
         <div className="py-2">
           <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>🎨 Theme</p>
           <div className="flex flex-wrap gap-2">
@@ -742,7 +730,7 @@ function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, i
           </div>
         </div>
 
-        {/* Timezone Selector */}
+        {/* Timezone */}
         <div className="py-2">
           <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>🕐 Timezone</p>
           <select
@@ -803,15 +791,9 @@ export default function App() {
   const [view, setView] = useState('home');
   const [selectedCountry, setSelectedCountry] = useState('US');
   const [focusTask, setFocusTask] = useState(null);
-
-  // Gamification
   const [points, setPoints] = useLocalStorage('points', 0);
   const [badges, setBadges] = useLocalStorage('badges', []);
-
-  // Theme
   const [theme, setTheme] = useLocalStorage('theme', 'default');
-
-  // Timezone – auto detect browser timezone, but allow manual override
   const [timezone, setTimezone] = useLocalStorage('timezone', 'auto');
 
   const { text, isListening, startListening, error: voiceError } = useSpeechRecognition();
@@ -854,7 +836,7 @@ export default function App() {
     if (voiceError) toast.error(voiceError);
   }, [voiceError]);
 
-  // ---------- Push Notifications ----------
+  // ---------- Notifications ----------
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
@@ -993,56 +975,76 @@ export default function App() {
     }
   };
 
-  // ---------- AI Subtask Generator (Level 2) ----------
+  // ---------- AI Subtask Generator (with fallback) ----------
   const generateSubtasks = async (taskId, taskTitle) => {
-    try {
-      toast('🤖 Generating subtasks...', { duration: 2000 });
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'mistralai/mistral-7b-instruct:free',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert task breakdown assistant. Given a task title, suggest 3-5 subtasks that are actionable, specific, and logically ordered. Return only a JSON array of strings, e.g. ["Subtask 1", "Subtask 2"].'
-            },
-            {
-              role: 'user',
-              content: `Task: "${taskTitle}"`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 200,
-        }),
-      });
-      if (!response.ok) throw new Error('AI failed');
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content || '[]';
-      const subtaskArray = JSON.parse(content);
-      if (Array.isArray(subtaskArray) && subtaskArray.length > 0) {
-        setTasks(prev => prev.map(task => {
-          if (task.id === taskId) {
-            const newSubtasks = subtaskArray.map((title, idx) => ({
-              id: Date.now() + idx,
-              title: title,
-              completed: false,
-            }));
-            return { ...task, subtasks: [...(task.subtasks || []), ...newSubtasks] };
-          }
-          return task;
-        }));
-        toast.success('✨ Subtasks generated!');
-      } else {
-        toast.error('Could not generate subtasks. Please try again.');
+    toast.loading('🤖 Generating subtasks...', { id: 'gen-subtasks' });
+
+    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    let subtaskArray = [];
+
+    if (apiKey && apiKey !== 'your_openrouter_api_key_here') {
+      try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'mistralai/mistral-7b-instruct:free',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert task breakdown assistant. Given a task title, suggest 3-5 actionable, specific subtasks in a logical order. Return only a JSON array of strings, e.g. ["Subtask 1", "Subtask 2"].'
+              },
+              {
+                role: 'user',
+                content: `Task: "${taskTitle}"`
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 200,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || '[]';
+          const clean = content.replace(/```json|```/g, '').trim();
+          subtaskArray = JSON.parse(clean);
+          if (!Array.isArray(subtaskArray) || subtaskArray.length === 0) throw new Error('Invalid subtask array');
+        } else {
+          console.warn('OpenRouter API error:', response.status);
+        }
+      } catch (error) {
+        console.error('AI subtask generation error:', error);
       }
-    } catch (error) {
-      console.error(error);
-      toast.error('Failed to generate subtasks.');
     }
+
+    // Fallback
+    if (!subtaskArray || subtaskArray.length === 0) {
+      subtaskArray = [
+        `Plan and research ${taskTitle}`,
+        `Gather necessary resources for ${taskTitle}`,
+        `Execute ${taskTitle}`,
+        `Review and finalize ${taskTitle}`
+      ];
+      toast.info('Used fallback subtasks (AI unavailable)', { id: 'gen-subtasks' });
+    }
+
+    setTasks(prev => prev.map(task => {
+      if (task.id === taskId) {
+        const newSubtasks = subtaskArray.map((title, idx) => ({
+          id: Date.now() + idx,
+          title: title,
+          completed: false,
+        }));
+        return { ...task, subtasks: [...(task.subtasks || []), ...newSubtasks] };
+      }
+      return task;
+    }));
+
+    toast.success(`✨ ${subtaskArray.length} subtasks added!`, { id: 'gen-subtasks' });
   };
 
   // ---------- toggleTask ----------
@@ -1191,7 +1193,6 @@ export default function App() {
   // ---------- Render Home ----------
   const renderHome = () => (
     <div className="space-y-4">
-      {/* Smart Suggestion (Level 2) */}
       <SmartSuggestion tasks={tasks} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1209,14 +1210,7 @@ export default function App() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search tasks..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:ring-2"
-          style={{ 
-            background: 'var(--bg-input)', 
-            color: 'var(--text-primary)',
-            borderColor: 'var(--border-color)',
-            borderWidth: '1px',
-            ringColor: 'var(--accent)'
-          }}
+          className="input-field pl-10"
         />
       </div>
 
@@ -1228,14 +1222,7 @@ export default function App() {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
             placeholder="Add a task... (try voice 🎤)"
-            className="w-full px-4 py-3 pr-24 rounded-xl focus:outline-none focus:ring-2"
-            style={{ 
-              background: 'var(--bg-input)', 
-              color: 'var(--text-primary)',
-              borderColor: 'var(--border-color)',
-              borderWidth: '1px',
-              ringColor: 'var(--accent)'
-            }}
+            className="input-field pr-24"
           />
           <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
             <button
@@ -1382,7 +1369,7 @@ export default function App() {
                           />
                         </div>
                       )}
-                      {/* AI Subtask Generator Button (Level 2) */}
+                      {/* AI Subtask Generator */}
                       {!task.subtasks?.length && !task.completed && (
                         <button
                           onClick={() => generateSubtasks(task.id, task.title)}
