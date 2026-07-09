@@ -4,9 +4,9 @@ import {
   Plus, Mic, Check, Trash2, Sun, Moon, Search, Edit2, 
   Download, Upload, MapPin, Wind, Droplets, Loader2, X,
   RefreshCw, Award, Flame, Zap, Clock, Calendar, Target,
-  Play, Pause, RotateCcw, ListChecks
+  Play, Pause, RotateCcw, ListChecks, Share2, Gift, Star, Crown
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays, addWeeks, addMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays, addWeeks, addMonths, nextDay, parse } from 'date-fns';
 import toast, { Toaster } from 'react-hot-toast';
 
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
@@ -26,7 +26,8 @@ function ProgressBar({ progress }) {
         initial={{ width: 0 }}
         animate={{ width: `${Math.min(progress, 100)}%` }}
         transition={{ duration: 0.5 }}
-        className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
+        className="h-2 rounded-full"
+        style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))' }}
       />
     </div>
   );
@@ -44,8 +45,8 @@ function EmptyState({ message, sub }) {
       >
         🎯
       </motion.div>
-      <h3 className="text-xl font-bold text-gray-700 dark:text-gray-300">{message}</h3>
-      <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{sub}</p>
+      <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{message}</h3>
+      <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{sub}</p>
     </div>
   );
 }
@@ -53,13 +54,14 @@ function EmptyState({ message, sub }) {
 // ---------- Footer ----------
 function Footer() {
   return (
-    <footer className="text-center py-4 text-sm text-gray-400 border-t border-gray-200 dark:border-gray-700">
+    <footer className="text-center py-4 text-sm border-t" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}>
       Developed with ❤️ by{' '}
       <a 
         href="https://manish-matrix-portfolio.vercel.app/" 
         target="_blank" 
         rel="noopener noreferrer"
-        className="text-blue-500 hover:underline"
+        className="hover:underline"
+        style={{ color: 'var(--accent)' }}
       >
         Manish Rajdoot
       </a>
@@ -76,16 +78,14 @@ function BottomNav({ view, setView }) {
     { id: 'settings', icon: '⚙️', label: 'Settings' },
   ];
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700 z-20">
+    <nav className="fixed bottom-0 left-0 right-0 glass border-t z-20" style={{ borderColor: 'var(--border-color)' }}>
       <div className="max-w-4xl mx-auto flex justify-around py-1">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setView(t.id)}
             className={`flex flex-col items-center px-4 py-1.5 rounded-lg transition-all ${
-              view === t.id 
-                ? 'text-blue-500' 
-                : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+              view === t.id ? 'text-blue-500' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
             }`}
           >
             <span className="text-xl">{t.icon}</span>
@@ -144,14 +144,14 @@ function WeatherWidget() {
   if (loading) {
     return (
       <div className="card-gradient flex items-center justify-center gap-2 py-3">
-        <Loader2 className="animate-spin text-blue-500" size={18} />
-        <span className="text-sm text-gray-500">Loading weather...</span>
+        <Loader2 className="animate-spin" size={18} style={{ color: 'var(--accent)' }} />
+        <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>Loading weather...</span>
       </div>
     );
   }
   if (!weather) {
     return (
-      <div className="card-gradient text-center py-3 text-sm text-gray-400">
+      <div className="card-gradient text-center py-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
         🌤️ Weather unavailable
       </div>
     );
@@ -160,26 +160,26 @@ function WeatherWidget() {
     <div className="card-gradient">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <MapPin size={16} className="text-blue-500" />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{location}</span>
+          <MapPin size={16} style={{ color: 'var(--accent)' }} />
+          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{location}</span>
         </div>
-        <span className="text-xs text-gray-400">{new Date().toLocaleTimeString()}</span>
+        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{new Date().toLocaleTimeString()}</span>
       </div>
       <div className="flex flex-wrap items-center justify-between mt-1 gap-2">
         <div className="flex items-center gap-3">
           <span className="text-3xl">{getIcon(weather.code)}</span>
           <div>
-            <span className="text-2xl font-bold text-gray-800 dark:text-white">{weather.temp}°</span>
-            <span className="text-xs text-gray-400 ml-1">C</span>
+            <span className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{weather.temp}°</span>
+            <span className="text-xs ml-1" style={{ color: 'var(--text-secondary)' }}>C</span>
           </div>
         </div>
-        <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-300">
+        <div className="flex flex-wrap gap-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <div className="flex items-center gap-1">
-            <Wind size={14} className="text-blue-400" />
+            <Wind size={14} style={{ color: 'var(--accent)' }} />
             <span>{weather.wind} km/h</span>
           </div>
           <div className="flex items-center gap-1">
-            <Droplets size={14} className="text-blue-400" />
+            <Droplets size={14} style={{ color: 'var(--accent)' }} />
             <span>{weather.humidity}%</span>
           </div>
         </div>
@@ -188,7 +188,7 @@ function WeatherWidget() {
   );
 }
 
-// ---------- Live Clock (timezone-aware) ----------
+// ---------- Live Clock ----------
 function LiveClock({ countryCode = 'US' }) {
   const [time, setTime] = useState(new Date());
 
@@ -239,15 +239,16 @@ function LiveClock({ countryCode = 'US' }) {
   return (
     <div className="card">
       <div className="flex justify-between items-center">
-        <span className="text-xs text-gray-400">🕐 {countryCode}</span>
-        <span className="text-xs text-gray-400">{dateStr}</span>
+        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>🕐 {countryCode}</span>
+        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{dateStr}</span>
       </div>
       <div className="text-center mt-1">
         <motion.span
           key={time.getTime()}
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl font-bold tabular-nums bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+          className="text-3xl font-bold tabular-nums"
+          style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-hover))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
         >
           {String(h).padStart(2, '0')}:{String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
         </motion.span>
@@ -257,30 +258,30 @@ function LiveClock({ countryCode = 'US' }) {
 }
 
 // ---------- Stats Widget ----------
-function StatsWidget({ completed, total, streak }) {
+function StatsWidget({ completed, total, streak, points, badges }) {
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
   return (
     <div className="card">
       <div className="flex flex-wrap justify-around gap-2">
         <div className="text-center min-w-[60px]">
           <div className="text-green-500 text-lg">✅</div>
-          <p className="text-lg font-bold text-gray-800 dark:text-white">{completed}</p>
-          <p className="text-[10px] text-gray-400">Done</p>
+          <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{completed}</p>
+          <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Done</p>
         </div>
         <div className="text-center min-w-[60px]">
           <div className="text-blue-500 text-lg">⏳</div>
-          <p className="text-lg font-bold text-gray-800 dark:text-white">{total - completed}</p>
-          <p className="text-[10px] text-gray-400">Pending</p>
+          <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{total - completed}</p>
+          <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Pending</p>
         </div>
         <div className="text-center min-w-[60px]">
           <div className="text-orange-500 text-lg">🔥</div>
-          <p className="text-lg font-bold text-gray-800 dark:text-white">{streak}</p>
-          <p className="text-[10px] text-gray-400">Streak</p>
+          <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{streak}</p>
+          <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Streak</p>
         </div>
         <div className="text-center min-w-[60px]">
           <div className="text-purple-500 text-lg">🏆</div>
-          <p className="text-lg font-bold text-gray-800 dark:text-white">{rate}%</p>
-          <p className="text-[10px] text-gray-400">Rate</p>
+          <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{rate}%</p>
+          <p className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>Rate</p>
         </div>
       </div>
       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-2 overflow-hidden">
@@ -288,14 +289,29 @@ function StatsWidget({ completed, total, streak }) {
           initial={{ width: 0 }}
           animate={{ width: `${Math.min(rate, 100)}%` }}
           transition={{ duration: 0.8 }}
-          className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full"
+          className="h-full rounded-full"
+          style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-hover))' }}
         />
       </div>
-      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-        <Zap size={14} className="text-yellow-500" />
-        <span className="text-xs text-gray-500 dark:text-gray-400">
-          {rate === 100 ? '🎉 Perfect!' : rate >= 75 ? '🔥 Amazing!' : rate >= 50 ? '💪 Keep going!' : rate >= 25 ? '📈 On track!' : '🚀 Start now!'}
-        </span>
+      <div className="flex items-center justify-between mt-2 pt-2 border-t" style={{ borderColor: 'var(--border-color)' }}>
+        <div className="flex items-center gap-2">
+          <Zap size={14} className="text-yellow-500" />
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+            {rate === 100 ? '🎉 Perfect!' : rate >= 75 ? '🔥 Amazing!' : rate >= 50 ? '💪 Keep going!' : rate >= 25 ? '📈 On track!' : '🚀 Start now!'}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <span className="flex items-center gap-1">
+            <Award size={14} className="text-yellow-500" />
+            {points}
+          </span>
+          {badges.length > 0 && (
+            <span className="flex items-center gap-1">
+              <Crown size={14} className="text-purple-500" />
+              {badges.length}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -320,9 +336,9 @@ function SubtaskList({ subtasks, onToggle, onAdd, onDelete }) {
             onClick={() => onToggle(sub.id)}
             className={`w-4 h-4 rounded border flex items-center justify-center ${sub.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 dark:border-gray-500'}`}
           >
-            {sub.completed && <Check size={12} className="text-white" />}
+            {sub.completed && <Check size={10} className="text-white" />}
           </button>
-          <span className={`text-sm ${sub.completed ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-200'}`}>
+          <span className={`text-sm ${sub.completed ? 'line-through' : ''}`} style={{ color: sub.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
             {sub.title}
           </span>
           <button onClick={() => onDelete(sub.id)} className="text-red-400 hover:text-red-600">
@@ -336,10 +352,11 @@ function SubtaskList({ subtasks, onToggle, onAdd, onDelete }) {
           value={newSubtask}
           onChange={(e) => setNewSubtask(e.target.value)}
           placeholder="Add subtask..."
-          className="text-sm px-2 py-1 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="text-sm px-2 py-1 bg-gray-50 dark:bg-gray-700 rounded border focus:outline-none focus:ring-1"
+          style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
           onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
         />
-        <button onClick={handleAdd} className="text-blue-500 hover:text-blue-600">
+        <button onClick={handleAdd} style={{ color: 'var(--accent)' }}>
           <Plus size={16} />
         </button>
       </div>
@@ -386,10 +403,10 @@ function PomodoroTimer() {
 
   return (
     <div className="card text-center">
-      <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
+      <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>
         {isBreak ? '☕ Break' : '🎯 Focus'}
       </h3>
-      <div className="text-4xl font-bold text-gray-800 dark:text-white">
+      <div className="text-4xl font-bold" style={{ color: 'var(--text-primary)' }}>
         {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
       </div>
       <div className="flex justify-center gap-2 mt-3">
@@ -424,16 +441,12 @@ function FocusMode({ task, onExit }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-900 flex flex-col items-center justify-center text-white">
-      <button onClick={onExit} className="absolute top-4 right-4 p-2 hover:bg-gray-700 rounded-full transition-colors">
-        <X size={28} />
-      </button>
+    <div className="focus-overlay">
+      <button onClick={onExit} className="exit-btn">✕</button>
       <h2 className="text-3xl font-bold mb-4">🎯 Focus Mode</h2>
-      <p className="text-xl mb-8 text-gray-300">{task?.title || 'Focus on your task'}</p>
-      <div className="text-7xl font-bold mb-8 text-blue-400">{formatTime(time)}</div>
-      <button onClick={onExit} className="px-8 py-3 bg-blue-500 rounded-xl hover:bg-blue-600 transition-colors text-white text-lg">
-        Exit Focus
-      </button>
+      <p className="task-title">{task?.title || 'Focus on your task'}</p>
+      <div className="time-display">{formatTime(time)}</div>
+      <button onClick={onExit} className="exit-focus-btn">Exit Focus</button>
     </div>
   );
 }
@@ -466,14 +479,14 @@ function CalendarView({ selectedCountry, holidays, loading }) {
         <button onClick={prevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
           ◀
         </button>
-        <h2 className="text-lg font-bold text-gray-800 dark:text-white">
+        <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
           {format(currentMonth, 'MMMM yyyy')}
         </h2>
         <button onClick={nextMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
           ▶
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
         {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d}>{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-1">
@@ -483,9 +496,7 @@ function CalendarView({ selectedCountry, holidays, loading }) {
           return (
             <div
               key={idx}
-              className={`aspect-square flex flex-col items-center justify-center rounded-lg transition-all ${
-                isTodayDate ? 'bg-blue-100 dark:bg-blue-900/30 border border-blue-500' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-              } ${dayHolidays.length > 0 ? 'cursor-pointer' : ''}`}
+              className={`calendar-day ${isTodayDate ? 'today' : ''}`}
               onClick={() => {
                 if (dayHolidays.length > 0) {
                   const names = dayHolidays.map(h => h.name).join('\n');
@@ -493,14 +504,13 @@ function CalendarView({ selectedCountry, holidays, loading }) {
                 }
               }}
             >
-              <span className={`text-sm ${isTodayDate ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
-                {format(day, 'd')}
-              </span>
+              <span className="text-sm">{format(day, 'd')}</span>
               {dayHolidays.length > 0 && (
-                <div className="flex gap-0.5 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400" />
-                  {dayHolidays.length > 1 && (
-                    <span className="text-[8px] text-gray-500">+{dayHolidays.length-1}</span>
+                <div className={`holiday-dot ${dayHolidays.length > 1 ? 'multiple' : ''}`}>
+                  {dayHolidays.length > 1 ? (
+                    dayHolidays.slice(0, 3).map((_, i) => <span key={i} />)
+                  ) : (
+                    <span />
                   )}
                 </div>
               )}
@@ -508,7 +518,7 @@ function CalendarView({ selectedCountry, holidays, loading }) {
           );
         })}
       </div>
-      <div className="mt-3 text-center text-xs text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-2">
+      <div className="mt-3 text-center text-xs border-t pt-2" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}>
         {loading ? 'Loading holidays...' : `${holidays?.length || 0} holidays this month`}
       </div>
     </div>
@@ -548,15 +558,15 @@ function AnalyticsWidget({ tasks, completed, total, streak }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-gray-800 dark:text-white">📊 Analytics Dashboard</h2>
+      <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>📊 Analytics Dashboard</h2>
       <div className="grid grid-cols-2 gap-3">
-        <div className="card"><p className="text-sm text-gray-500">Completion</p><p className="text-2xl font-bold">{rate}%</p></div>
-        <div className="card"><p className="text-sm text-gray-500">Streak</p><p className="text-2xl font-bold">{streak} 🔥</p></div>
-        <div className="card"><p className="text-sm text-gray-500">Total</p><p className="text-2xl font-bold">{total}</p></div>
-        <div className="card"><p className="text-sm text-gray-500">Pending</p><p className="text-2xl font-bold">{total - completed}</p></div>
+        <div className="card"><p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Completion</p><p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{rate}%</p></div>
+        <div className="card"><p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Streak</p><p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{streak} 🔥</p></div>
+        <div className="card"><p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Total</p><p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{total}</p></div>
+        <div className="card"><p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Pending</p><p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{total - completed}</p></div>
       </div>
       <div className="card">
-        <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-3">📈 Weekly Progress</h3>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>📈 Weekly Progress</h3>
         <div className="flex items-end justify-between gap-1 h-32">
           {getLast7Days().map((day, i) => {
             const value = getCompletionData()[i] || 0;
@@ -567,37 +577,38 @@ function AnalyticsWidget({ tasks, completed, total, streak }) {
                   initial={{ height: 0 }}
                   animate={{ height: `${Math.max(height, 4)}%` }}
                   transition={{ duration: 0.5, delay: i * 0.05 }}
-                  className="w-full max-w-[30px] bg-gradient-to-t from-blue-400 to-purple-500 rounded-t-lg"
-                  style={{ height: `${Math.max(height, 4)}%`, minHeight: '4px' }}
+                  className="w-full max-w-[30px] rounded-t-lg"
+                  style={{ background: 'linear-gradient(to top, var(--accent), var(--accent-hover))', height: `${Math.max(height, 4)}%`, minHeight: '4px' }}
                 />
-                <span className="text-[10px] text-gray-400 mt-1">{day}</span>
-                <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">{value}</span>
+                <span className="text-[10px] mt-1" style={{ color: 'var(--text-secondary)' }}>{day}</span>
+                <span className="text-[10px] font-medium" style={{ color: 'var(--text-primary)' }}>{value}</span>
               </div>
             );
           })}
         </div>
       </div>
       <div className="card">
-        <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">📂 Categories</h3>
+        <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>📂 Categories</h3>
         {Object.entries(cats).length > 0 ? (
           Object.entries(cats).map(([k, v]) => (
-            <div key={k} className="flex justify-between items-center py-1.5 border-b border-gray-100 dark:border-gray-700 last:border-0">
-              <span className="text-sm text-gray-600 dark:text-gray-300">{k}</span>
+            <div key={k} className="flex justify-between items-center py-1.5 border-b last:border-0" style={{ borderColor: 'var(--border-color)' }}>
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{k}</span>
               <div className="flex items-center gap-2">
                 <div className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${total > 0 ? (v / total) * 100 : 0}%` }}
                     transition={{ duration: 0.5 }}
-                    className="h-full bg-blue-500 rounded-full"
+                    className="h-full rounded-full"
+                    style={{ background: 'var(--accent)' }}
                   />
                 </div>
-                <span className="text-sm font-medium text-gray-800 dark:text-white">{v}</span>
+                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{v}</span>
               </div>
             </div>
           ))
         ) : (
-          <p className="text-sm text-gray-400 text-center py-4">No categories yet</p>
+          <p className="text-sm text-center py-4" style={{ color: 'var(--text-secondary)' }}>No categories yet</p>
         )}
       </div>
     </div>
@@ -605,15 +616,24 @@ function AnalyticsWidget({ tasks, completed, total, streak }) {
 }
 
 // ---------- Settings Widget ----------
-function SettingsWidget({ darkMode, setDarkMode, exportTasks, importTasks, clearCompleted }) {
+function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, importTasks, clearCompleted }) {
+  const themes = [
+    { id: 'default', name: 'Default', color: '#3b82f6' },
+    { id: 'ocean', name: 'Ocean', color: '#10b981' },
+    { id: 'sunset', name: 'Sunset', color: '#f97316' },
+    { id: 'forest', name: 'Forest', color: '#22c55e' },
+    { id: 'midnight', name: 'Midnight', color: '#8b5cf6' },
+  ];
+
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-gray-800 dark:text-white">⚙️ Settings</h2>
+      <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>⚙️ Settings</h2>
       <div className="card space-y-3">
+        {/* Dark Mode */}
         <div className="flex items-center justify-between py-2">
           <div className="flex items-center gap-2">
-            {darkMode ? <Moon size={18} className="text-blue-500" /> : <Sun size={18} className="text-yellow-500" />}
-            <span className="text-sm text-gray-700 dark:text-gray-200">Dark Mode</span>
+            {darkMode ? <Moon size={18} style={{ color: 'var(--accent)' }} /> : <Sun size={18} style={{ color: 'var(--accent)' }} />}
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Dark Mode</span>
           </div>
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -622,20 +642,47 @@ function SettingsWidget({ darkMode, setDarkMode, exportTasks, importTasks, clear
             <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-0.5'}`} />
           </button>
         </div>
+
+        {/* Theme Selector */}
+        <div className="py-2">
+          <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>🎨 Theme</p>
+          <div className="flex flex-wrap gap-2">
+            {themes.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTheme(t.id)}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                  theme === t.id ? 'ring-2 ring-offset-2' : ''
+                }`}
+                style={{
+                  background: theme === t.id ? 'var(--accent)' : 'var(--border-color)',
+                  color: theme === t.id ? 'white' : 'var(--text-primary)',
+                  ringColor: 'var(--accent)',
+                }}
+              >
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded-full" style={{ background: t.color }} />
+                  {t.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button onClick={exportTasks} className="w-full flex items-center justify-between py-2.5 px-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-          <span className="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2"><Download size={18} /> Export Tasks</span>
-          <span className="text-xs text-gray-400">JSON</span>
+          <span className="text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Download size={18} /> Export Tasks</span>
+          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>JSON</span>
         </button>
         <label className="w-full flex items-center justify-between py-2.5 px-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-          <span className="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2"><Upload size={18} /> Import Tasks</span>
+          <span className="text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Upload size={18} /> Import Tasks</span>
           <input type="file" accept=".json" onChange={importTasks} className="hidden" />
         </label>
         <button onClick={clearCompleted} className="w-full flex items-center justify-between py-2.5 px-3 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-          <span className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2"><Trash2 size={18} /> Clear Completed</span>
+          <span className="text-sm flex items-center gap-2 text-red-600 dark:text-red-400"><Trash2 size={18} /> Clear Completed</span>
           <span className="text-xs text-red-400">Permanent</span>
         </button>
-        <button onClick={() => { if (window.confirm('⚠️ Delete all tasks permanently?')) { localStorage.removeItem('tasks'); window.location.reload(); } }} className="w-full flex items-center justify-between py-2.5 px-3 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
-          <span className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2"><RefreshCw size={18} /> Reset All Data</span>
+        <button onClick={() => { if (window.confirm('⚠️ Delete all tasks permanently?')) { localStorage.removeItem('tasks'); localStorage.removeItem('points'); localStorage.removeItem('badges'); window.location.reload(); } }} className="w-full flex items-center justify-between py-2.5 px-3 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+          <span className="text-sm flex items-center gap-2 text-red-600 dark:text-red-400"><RefreshCw size={18} /> Reset All Data</span>
           <span className="text-xs text-red-400">⚠️ Warning</span>
         </button>
       </div>
@@ -648,6 +695,7 @@ function SettingsWidget({ darkMode, setDarkMode, exportTasks, importTasks, clear
 // ============================================================
 
 export default function App() {
+  // ---------- STATE ----------
   const [tasks, setTasks] = useLocalStorage('tasks', []);
   const [input, setInput] = useState('');
   const [filter, setFilter] = useState('all');
@@ -660,11 +708,17 @@ export default function App() {
   const [view, setView] = useState('home');
   const [selectedCountry, setSelectedCountry] = useState('US');
   const [focusTask, setFocusTask] = useState(null);
-  const [showPomodoro, setShowPomodoro] = useState(false);
+
+  // Gamification State
+  const [points, setPoints] = useLocalStorage('points', 0);
+  const [badges, setBadges] = useLocalStorage('badges', []);
+
+  // Theme State
+  const [theme, setTheme] = useLocalStorage('theme', 'default');
 
   const { text, isListening, startListening, error: voiceError } = useSpeechRecognition();
 
-  // ---------- Holidays State ----------
+  // ---------- Holidays ----------
   const [holidays, setHolidays] = useState([]);
   const [holidaysLoading, setHolidaysLoading] = useState(false);
   const [holidayYear, setHolidayYear] = useState(new Date().getFullYear());
@@ -691,16 +745,40 @@ export default function App() {
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+      localStorage.setItem('themePreference', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+      localStorage.setItem('themePreference', 'light');
     }
   }, [darkMode]);
 
   useEffect(() => {
     if (voiceError) toast.error(voiceError);
   }, [voiceError]);
+
+  // ---------- Push Notifications Check ----------
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
+    // Check for due tasks daily
+    const checkDueTasks = () => {
+      const today = new Date();
+      const dueTasks = tasks.filter(t => 
+        t.dueDate && !t.completed && isSameDay(new Date(t.dueDate), today)
+      );
+      if (dueTasks.length > 0 && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('📋 Tasks Due Today!', {
+          body: `You have ${dueTasks.length} task${dueTasks.length > 1 ? 's' : ''} due today.`,
+          icon: '/vite.svg'
+        });
+      }
+    };
+    checkDueTasks();
+    const interval = setInterval(checkDueTasks, 3600000); // Check every hour
+    return () => clearInterval(interval);
+  }, [tasks]);
 
   // ---------- AI Categorization ----------
   const categorizeTask = useCallback(async (taskText) => {
@@ -711,22 +789,44 @@ export default function App() {
     }
   }, []);
 
-  // ---------- Helpers ----------
-  const determinePriority = (text) => {
-    if (/(urgent|asap|important|critical|immediate)/i.test(text)) return 'high';
-    if (/(low priority|someday|maybe|whenever)/i.test(text)) return 'low';
-    return 'medium';
-  };
-
-  const extractDueDate = (text) => {
+  // ---------- SMART DUE DATE PARSER (Level 1) ----------
+  const parseNaturalDate = (text) => {
     const now = new Date();
-    if (/today/i.test(text)) return new Date(now.setHours(23, 59, 59, 999));
-    if (/tomorrow/i.test(text)) return new Date(now.setDate(now.getDate() + 1));
+    const lower = text.toLowerCase();
+
+    // "today", "tomorrow"
+    if (/today/i.test(lower)) return new Date(now.setHours(23, 59, 59, 999));
+    if (/tomorrow/i.test(lower)) return new Date(now.setDate(now.getDate() + 1));
+
+    // "in X days/weeks"
+    const inMatch = lower.match(/in\s+(\d+)\s+(day|days|week|weeks|month|months)/i);
+    if (inMatch) {
+      const num = parseInt(inMatch[1]);
+      const unit = inMatch[2].toLowerCase();
+      if (unit.startsWith('day')) return addDays(now, num);
+      if (unit.startsWith('week')) return addWeeks(now, num);
+      if (unit.startsWith('month')) return addMonths(now, num);
+    }
+
+    // "next Monday", "next Tuesday", etc.
+    const nextMatch = lower.match(/next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
+    if (nextMatch) {
+      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const target = days.indexOf(nextMatch[1].toLowerCase());
+      if (target !== -1) {
+        const date = nextDay(now, target);
+        date.setHours(23, 59, 59, 999);
+        return date;
+      }
+    }
+
+    // MM/DD format
     const match = text.match(/\d{1,2}\/\d{1,2}/);
     if (match) {
       const [m, d] = match[0].split('/');
       return new Date(now.getFullYear(), parseInt(m) - 1, parseInt(d));
     }
+
     return null;
   };
 
@@ -737,13 +837,14 @@ export default function App() {
       return; 
     }
     const category = await categorizeTask(taskText);
+    const dueDate = parseNaturalDate(taskText);
     const newTask = {
       id: Date.now(),
       title: taskText.trim(),
       completed: false,
       category: category,
       priority: determinePriority(taskText),
-      dueDate: extractDueDate(taskText),
+      dueDate: dueDate,
       createdAt: new Date(),
       completedAt: null,
       tags: (taskText.match(/#\w+/g) || []).map(tag => tag.slice(1)),
@@ -756,32 +857,76 @@ export default function App() {
     toast.success('Task added! 🎯');
   }, [input, setTasks, categorizeTask]);
 
+  const determinePriority = (text) => {
+    if (/(urgent|asap|important|critical|immediate)/i.test(text)) return 'high';
+    if (/(low priority|someday|maybe|whenever)/i.test(text)) return 'low';
+    return 'medium';
+  };
+
+  // ---------- GAMIFICATION (Level 1) ----------
+  const awardPointsAndBadges = (task) => {
+    let earnedPoints = 10; // Base points
+    if (task.subtasks?.length > 0) {
+      earnedPoints += task.subtasks.filter(s => s.completed).length * 5;
+    }
+    // Bonus for high priority
+    if (task.priority === 'high') earnedPoints += 5;
+    // Bonus for completing early
+    if (task.dueDate && new Date(task.dueDate) > new Date()) {
+      earnedPoints += 3;
+    }
+
+    const newPoints = points + earnedPoints;
+    setPoints(newPoints);
+
+    // Check for badges
+    const newBadges = [...badges];
+    if (newPoints >= 100 && !newBadges.includes('rookie')) {
+      newBadges.push('rookie');
+      toast.success('🏅 Badge Unlocked: Rookie!');
+    }
+    if (newPoints >= 250 && !newBadges.includes('achiever')) {
+      newBadges.push('achiever');
+      toast.success('🏅 Badge Unlocked: Achiever!');
+    }
+    if (newPoints >= 500 && !newBadges.includes('master')) {
+      newBadges.push('master');
+      toast.success('🏅 Badge Unlocked: Master!');
+    }
+    if (newPoints >= 1000 && !newBadges.includes('legend')) {
+      newBadges.push('legend');
+      toast.success('🏅 Badge Unlocked: Legend! 🎉');
+    }
+    setBadges(newBadges);
+  };
+
+  // ---------- SHARE TASK (Level 1) ----------
+  const shareTask = (task) => {
+    const shareText = `📋 Task: ${task.title}\n📅 Due: ${task.dueDate ? format(new Date(task.dueDate), 'MMM d, yyyy') : 'No date'}\n🏷️ Category: ${task.category?.name || 'Personal'}\n⚡ Priority: ${task.priority || 'medium'}\n\n✅ Smart To-Do Pro`;
+    if (navigator.share) {
+      navigator.share({ title: 'Smart To-Do Pro', text: shareText, url: window.location.href });
+    } else {
+      navigator.clipboard.writeText(shareText + '\n\n' + window.location.href);
+      toast.success('Task details copied to clipboard!');
+    }
+  };
+
+  // ---------- toggleTask (Overridden) ----------
   const toggleTask = (id) => {
-    setTasks(prev => prev.map(task => 
-      task.id === id ? { 
-        ...task, 
-        completed: !task.completed,
-        completedAt: !task.completed ? new Date() : null 
-      } : task
-    ));
-  };
-
-  const deleteTask = (id) => {
-    setTasks(prev => prev.filter(task => task.id !== id));
-    toast.success('Deleted');
-  };
-
-  const editTask = (id, newTitle) => {
-    setTasks(prev => prev.map(task => 
-      task.id === id ? { ...task, title: newTitle } : task
-    ));
-    setEditingId(null);
-    toast.success('Updated');
-  };
-
-  const clearCompleted = () => {
-    setTasks(prev => prev.filter(task => !task.completed));
-    toast.success('Cleared completed tasks');
+    setTasks(prev => prev.map(task => {
+      if (task.id === id) {
+        const completed = !task.completed;
+        if (completed) {
+          awardPointsAndBadges(task);
+        }
+        return { 
+          ...task, 
+          completed: completed,
+          completedAt: completed ? new Date() : null 
+        };
+      }
+      return task;
+    }));
   };
 
   // ---------- Subtask Functions ----------
@@ -818,14 +963,22 @@ export default function App() {
     }));
   };
 
-  // ---------- Recurring Functions ----------
-  const setRecurring = (taskId, type, interval = 1) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        return { ...task, recurring: { type, interval, nextOccurrence: null } };
-      }
-      return task;
-    }));
+  const deleteTask = (id) => {
+    setTasks(prev => prev.filter(task => task.id !== id));
+    toast.success('Deleted');
+  };
+
+  const editTask = (id, newTitle) => {
+    setTasks(prev => prev.map(task => 
+      task.id === id ? { ...task, title: newTitle } : task
+    ));
+    setEditingId(null);
+    toast.success('Updated');
+  };
+
+  const clearCompleted = () => {
+    setTasks(prev => prev.filter(task => !task.completed));
+    toast.success('Cleared completed tasks');
   };
 
   // ---------- Export/Import ----------
@@ -895,7 +1048,7 @@ export default function App() {
   const renderHome = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatsWidget completed={completed} total={total} streak={streak} />
+        <StatsWidget completed={completed} total={total} streak={streak} points={points} badges={badges} />
         <div className="space-y-4">
           <LiveClock countryCode={selectedCountry} />
           <PomodoroTimer />
@@ -903,13 +1056,20 @@ export default function App() {
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--text-secondary)' }} />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search tasks..."
-          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:ring-2"
+          style={{ 
+            background: 'var(--bg-input)', 
+            color: 'var(--text-primary)',
+            borderColor: 'var(--border-color)',
+            borderWidth: '1px',
+            ringColor: 'var(--accent)'
+          }}
         />
       </div>
 
@@ -921,7 +1081,14 @@ export default function App() {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
             placeholder="Add a task... (try voice 🎤)"
-            className="w-full px-4 py-3 pr-24 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 pr-24 rounded-xl focus:outline-none focus:ring-2"
+            style={{ 
+              background: 'var(--bg-input)', 
+              color: 'var(--text-primary)',
+              borderColor: 'var(--border-color)',
+              borderWidth: '1px',
+              ringColor: 'var(--accent)'
+            }}
           />
           <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
             <button
@@ -929,14 +1096,15 @@ export default function App() {
               className={`p-2 rounded-lg transition-colors ${
                 isListening 
                   ? 'bg-red-500 text-white animate-pulse' 
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <Mic size={18} />
             </button>
             <button
               onClick={() => handleAddTask()}
-              className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="p-2 rounded-lg text-white transition-colors"
+              style={{ background: 'var(--accent)' }}
             >
               <Plus size={18} />
             </button>
@@ -951,9 +1119,10 @@ export default function App() {
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm capitalize transition-all ${
               filter === f 
-                ? 'bg-blue-500 text-white' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                ? 'text-white' 
+                : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
             }`}
+            style={filter === f ? { background: 'var(--accent)' } : { color: 'var(--text-primary)' }}
           >
             {f === 'all' ? 'All' : f === 'pending' ? '📋 Pending' : '✅ Completed'}
           </button>
@@ -1008,15 +1177,16 @@ export default function App() {
                             if (e.key === 'Enter') editTask(task.id, e.target.value);
                           }}
                           onBlur={(e) => editTask(task.id, e.target.value)}
-                          className="w-full px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2"
+                          style={{ ringColor: 'var(--accent)', color: 'var(--text-primary)' }}
                           autoFocus
                         />
                       ) : (
                         <p className={`font-medium ${
                           task.completed 
-                            ? 'line-through text-gray-400 dark:text-gray-500' 
-                            : 'text-gray-800 dark:text-white'
-                        }`}>
+                            ? 'line-through' 
+                            : ''
+                        }`} style={{ color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
                           {task.title}
                         </p>
                       )}
@@ -1028,7 +1198,7 @@ export default function App() {
                           {task.category?.emoji} {task.category?.name}
                         </span>
                         {task.dueDate && (
-                          <span className="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                          <span className="badge bg-gray-100 dark:bg-gray-700" style={{ color: 'var(--text-secondary)' }}>
                             📅 {format(new Date(task.dueDate), 'MMM d')}
                           </span>
                         )}
@@ -1048,7 +1218,7 @@ export default function App() {
                         <div className="mt-2">
                           <div className="flex items-center gap-2">
                             <ListChecks size={14} className="text-gray-400" />
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                               {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
                             </span>
                             <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
@@ -1069,6 +1239,14 @@ export default function App() {
                     </div>
 
                     <div className="flex gap-1 flex-shrink-0">
+                      {/* Share Button */}
+                      <button
+                        onClick={() => shareTask(task)}
+                        className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                        title="Share Task"
+                      >
+                        <Share2 size={16} className="text-green-400 hover:text-green-600" />
+                      </button>
                       {/* Focus Mode Button */}
                       <button
                         onClick={() => setFocusTask(task)}
@@ -1120,21 +1298,31 @@ export default function App() {
     </div>
   );
 
+  // ---------- Recurring ----------
+  const setRecurring = (taskId, type) => {
+    setTasks(prev => prev.map(task => {
+      if (task.id === taskId) {
+        return { ...task, recurring: type ? { type, interval: 1, nextOccurrence: null } : null };
+      }
+      return task;
+    }));
+  };
+
   // ---------- Main Render ----------
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 pb-20">
+    <div data-theme={theme} className="min-h-screen transition-colors duration-300 pb-20" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       <Toaster 
         position="top-right"
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#363636',
+            background: '#1e293b',
             color: '#fff',
+            borderRadius: '12px',
           },
         }}
       />
       
-      {/* Focus Mode Overlay */}
       {focusTask && (
         <FocusMode 
           task={focusTask} 
@@ -1142,33 +1330,33 @@ export default function App() {
         />
       )}
       
-      <header className="sticky top-0 z-10 glass border-b border-gray-200 dark:border-gray-700">
+      <header className="sticky top-0 z-10 glass border-b" style={{ borderColor: 'var(--border-color)' }}>
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+              <h1 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                 📋 Smart To-Do
                 <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full">Pro</span>
               </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                 {completed}/{total} tasks • {streak} day streak 🔥
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setDarkMode(!darkMode)} 
-                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
-                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                {darkMode ? <Sun size={20} style={{ color: 'var(--accent)' }} /> : <Moon size={20} style={{ color: 'var(--accent)' }} />}
               </button>
               <button 
                 onClick={exportTasks} 
-                className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
-                <Download size={20} />
+                <Download size={20} style={{ color: 'var(--text-secondary)' }} />
               </button>
-              <label className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                <Upload size={20} />
+              <label className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                <Upload size={20} style={{ color: 'var(--text-secondary)' }} />
                 <input type="file" accept=".json" onChange={importTasks} className="hidden" />
               </label>
             </div>
@@ -1206,7 +1394,14 @@ export default function App() {
                   <select
                     value={selectedCountry}
                     onChange={(e) => setSelectedCountry(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                    style={{ 
+                      background: 'var(--bg-card)', 
+                      color: 'var(--text-primary)',
+                      borderColor: 'var(--border-color)',
+                      borderWidth: '1px',
+                      ringColor: 'var(--accent)'
+                    }}
                   >
                     <option value="US">🇺🇸 US</option>
                     <option value="GB">🇬🇧 UK</option>
@@ -1234,7 +1429,14 @@ export default function App() {
                   <select
                     value={holidayYear}
                     onChange={(e) => setHolidayYear(parseInt(e.target.value))}
-                    className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+                    style={{ 
+                      background: 'var(--bg-card)', 
+                      color: 'var(--text-primary)',
+                      borderColor: 'var(--border-color)',
+                      borderWidth: '1px',
+                      ringColor: 'var(--accent)'
+                    }}
                   >
                     {[2024, 2025, 2026, 2027, 2028].map(y => (
                       <option key={y} value={y}>{y}</option>
@@ -1252,6 +1454,8 @@ export default function App() {
               <SettingsWidget 
                 darkMode={darkMode} 
                 setDarkMode={setDarkMode} 
+                theme={theme}
+                setTheme={setTheme}
                 exportTasks={exportTasks} 
                 importTasks={importTasks} 
                 clearCompleted={clearCompleted} 
