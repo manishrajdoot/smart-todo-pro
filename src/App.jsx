@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, Mic, Check, Trash2, Sun, Moon, Search, Edit2, 
   Download, Upload, MapPin, Wind, Droplets, Loader2, X,
   RefreshCw, Award, Flame, Zap, Clock, Calendar, Target,
-  Play, Pause, RotateCcw, ListChecks, Share2, Gift, Star, Crown
+  Play, Pause, RotateCcw, ListChecks, Share2, Gift, Star, Crown,
+  Sparkles, TrendingUp
 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays, addWeeks, addMonths, nextDay, parse } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays, addWeeks, addMonths, nextDay } from 'date-fns';
 import toast, { Toaster } from 'react-hot-toast';
 
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
@@ -15,10 +16,9 @@ import { categorizeWithAI } from './services/aiService';
 import { getPriorityColor, getCategoryColor } from './utils/helpers';
 
 // ============================================================
-// COMPONENTS
+// COMPONENTS (same as before, with minor improvements)
 // ============================================================
 
-// ---------- Progress Bar ----------
 function ProgressBar({ progress }) {
   return (
     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -33,7 +33,6 @@ function ProgressBar({ progress }) {
   );
 }
 
-// ---------- Empty State ----------
 function EmptyState({ message, sub }) {
   return (
     <div className="text-center py-16">
@@ -51,7 +50,6 @@ function EmptyState({ message, sub }) {
   );
 }
 
-// ---------- Footer ----------
 function Footer() {
   return (
     <footer className="text-center py-4 text-sm border-t" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}>
@@ -69,7 +67,6 @@ function Footer() {
   );
 }
 
-// ---------- Bottom Navigation ----------
 function BottomNav({ view, setView }) {
   const tabs = [
     { id: 'home', icon: '🏠', label: 'Home' },
@@ -97,39 +94,75 @@ function BottomNav({ view, setView }) {
   );
 }
 
-// ---------- Weather Widget ----------
+// Weather Widget with improved location fallback
 function WeatherWidget() {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState('Loading...');
 
+  const fetchWeather = async (lat, lon) => {
+    try {
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto&current=temperature_2m,relative_humidity_2m,wind_speed_10m`
+      );
+      const data = await res.json();
+      // Try Open‑Meteo geocoding first
+      let city = '';
+      let country = '';
+      const geoRes = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?latitude=${lat}&longitude=${lon}&count=1`
+      );
+      const geoData = await geoRes.json();
+      if (geoData.results && geoData.results.length > 0) {
+        city = geoData.results[0].name || '';
+        country = geoData.results[0].country || '';
+      } else {
+        // Fallback: IP‑based location (if we don't have coords from geolocation, we won't reach here)
+        const ipRes = await fetch('https://ipapi.co/json/');
+        const ipData = await ipRes.json();
+        city = ipData.city || '';
+        country = ipData.country_name || '';
+      }
+      setLocation(city ? `${city}, ${country}` : 'Unknown');
+      setWeather({
+        temp: Math.round(data.current_weather.temperature),
+        wind: Math.round(data.current_weather.windspeed || 0),
+        humidity: data.current?.relative_humidity_2m || 0,
+        code: data.current_weather.weathercode || 0,
+      });
+    } catch (e) {
+      console.error(e);
+      setLocation('Weather unavailable');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          try {
-            const res = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&current_weather=true&timezone=auto&current=temperature_2m,relative_humidity_2m,wind_speed_10m`
-            );
-            const data = await res.json();
-            const geoRes = await fetch(
-              `https://geocoding-api.open-meteo.com/v1/search?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&count=1`
-            );
-            const geoData = await geoRes.json();
-            setLocation(geoData.results?.[0]?.name || 'Your Location');
-            setWeather({
-              temp: Math.round(data.current_weather.temperature),
-              wind: Math.round(data.current_weather.windspeed || 0),
-              humidity: data.current?.relative_humidity_2m || 0,
-              code: data.current_weather.weathercode || 0,
+        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        () => {
+          // Fallback to IP
+          fetch('https://ipapi.co/json/')
+            .then(res => res.json())
+            .then(data => {
+              if (data.latitude && data.longitude) {
+                fetchWeather(data.latitude, data.longitude);
+              } else {
+                setLoading(false);
+                setLocation('Location unavailable');
+              }
+            })
+            .catch(() => {
+              setLoading(false);
+              setLocation('Location unavailable');
             });
-          } catch (e) { console.error(e); }
-          setLoading(false);
-        },
-        () => setLoading(false)
+        }
       );
     } else {
       setLoading(false);
+      setLocation('Location not supported');
     }
   }, []);
 
@@ -188,11 +221,12 @@ function WeatherWidget() {
   );
 }
 
-// ---------- Live Clock ----------
-function LiveClock({ countryCode = 'US' }) {
+// LiveClock with auto‑detected timezone + manual override
+function LiveClock({ countryCode = 'US', manualTimezone = null }) {
   const [time, setTime] = useState(new Date());
 
   const getTimezone = (code) => {
+    if (manualTimezone) return manualTimezone;
     const map = {
       'US': 'America/New_York', 'GB': 'Europe/London', 'IN': 'Asia/Kolkata',
       'CA': 'America/Toronto', 'AU': 'Australia/Sydney', 'DE': 'Europe/Berlin',
@@ -231,7 +265,7 @@ function LiveClock({ countryCode = 'US' }) {
       setTime(newDate);
     }, 1000);
     return () => clearInterval(interval);
-  }, [countryCode]);
+  }, [countryCode, manualTimezone]);
 
   const h = time.getHours(), m = time.getMinutes(), s = time.getSeconds();
   const dateStr = time.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -257,7 +291,7 @@ function LiveClock({ countryCode = 'US' }) {
   );
 }
 
-// ---------- Stats Widget ----------
+// Stats Widget (unchanged)
 function StatsWidget({ completed, total, streak, points, badges }) {
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
   return (
@@ -301,49 +335,84 @@ function StatsWidget({ completed, total, streak, points, badges }) {
           </span>
         </div>
         <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <span className="flex items-center gap-1">
-            <Award size={14} className="text-yellow-500" />
-            {points}
-          </span>
-          {badges.length > 0 && (
-            <span className="flex items-center gap-1">
-              <Crown size={14} className="text-purple-500" />
-              {badges.length}
-            </span>
-          )}
+          <span className="flex items-center gap-1"><Award size={14} className="text-yellow-500" />{points}</span>
+          {badges.length > 0 && <span className="flex items-center gap-1"><Crown size={14} className="text-purple-500" />{badges.length}</span>}
         </div>
       </div>
     </div>
   );
 }
 
-// ---------- Subtask List ----------
+// ---------- PREDICTIVE SUGGESTION (Level 2) ----------
+function SmartSuggestion({ tasks }) {
+  const suggestion = useMemo(() => {
+    if (tasks.length === 0) return null;
+    // Find the most urgent task: highest priority + earliest due date (if any)
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    const sorted = [...tasks]
+      .filter(t => !t.completed)
+      .sort((a, b) => {
+        const pA = priorityOrder[a.priority] ?? 1;
+        const pB = priorityOrder[b.priority] ?? 1;
+        if (pA !== pB) return pA - pB;
+        // If same priority, earlier due date first
+        const dA = a.dueDate ? new Date(a.dueDate) : new Date(9999, 11, 31);
+        const dB = b.dueDate ? new Date(b.dueDate) : new Date(9999, 11, 31);
+        return dA - dB;
+      });
+    return sorted[0] || null;
+  }, [tasks]);
+
+  if (!suggestion) return null;
+
+  return (
+    <div className="card flex items-center gap-3 border-l-4" style={{ borderLeftColor: 'var(--accent)' }}>
+      <TrendingUp size={20} style={{ color: 'var(--accent)' }} />
+      <div className="flex-1">
+        <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>💡 Suggested Next Task</p>
+        <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{suggestion.title}</p>
+        <div className="flex gap-2 mt-1">
+          <span className={`badge ${getPriorityColor(suggestion.priority)}`}>{suggestion.priority}</span>
+          {suggestion.dueDate && (
+            <span className="badge bg-gray-100 dark:bg-gray-700" style={{ color: 'var(--text-secondary)' }}>
+              📅 {format(new Date(suggestion.dueDate), 'MMM d')}
+            </span>
+          )}
+        </div>
+      </div>
+      <button
+        onClick={() => {
+          // focus on that task? we can scroll or highlight
+          toast('Focus on this task!', { duration: 2000 });
+        }}
+        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+      >
+        <Target size={18} style={{ color: 'var(--accent)' }} />
+      </button>
+    </div>
+  );
+}
+
+// ---------- SUBTASK LIST (unchanged) ----------
 function SubtaskList({ subtasks, onToggle, onAdd, onDelete }) {
   const [newSubtask, setNewSubtask] = useState('');
-
   const handleAdd = () => {
     if (newSubtask.trim()) {
       onAdd(newSubtask.trim());
       setNewSubtask('');
     }
   };
-
   return (
     <div className="ml-6 mt-2 space-y-1">
       {subtasks?.map((sub) => (
         <div key={sub.id} className="flex items-center gap-2">
-          <button 
-            onClick={() => onToggle(sub.id)}
-            className={`w-4 h-4 rounded border flex items-center justify-center ${sub.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 dark:border-gray-500'}`}
-          >
+          <button onClick={() => onToggle(sub.id)} className={`w-4 h-4 rounded border flex items-center justify-center ${sub.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 dark:border-gray-500'}`}>
             {sub.completed && <Check size={10} className="text-white" />}
           </button>
           <span className={`text-sm ${sub.completed ? 'line-through' : ''}`} style={{ color: sub.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
             {sub.title}
           </span>
-          <button onClick={() => onDelete(sub.id)} className="text-red-400 hover:text-red-600">
-            <X size={14} />
-          </button>
+          <button onClick={() => onDelete(sub.id)} className="text-red-400 hover:text-red-600"><X size={14} /></button>
         </div>
       ))}
       <div className="flex items-center gap-2 mt-1">
@@ -356,15 +425,13 @@ function SubtaskList({ subtasks, onToggle, onAdd, onDelete }) {
           style={{ borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
           onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
         />
-        <button onClick={handleAdd} style={{ color: 'var(--accent)' }}>
-          <Plus size={16} />
-        </button>
+        <button onClick={handleAdd} style={{ color: 'var(--accent)' }}><Plus size={16} /></button>
       </div>
     </div>
   );
 }
 
-// ---------- Pomodoro Timer ----------
+// ---------- POMODORO (unchanged) ----------
 function PomodoroTimer() {
   const [minutes, setMinutes] = useState(25);
   const [seconds, setSeconds] = useState(0);
@@ -421,10 +488,9 @@ function PomodoroTimer() {
   );
 }
 
-// ---------- Focus Mode ----------
+// ---------- FOCUS MODE (unchanged) ----------
 function FocusMode({ task, onExit }) {
   const [time, setTime] = useState(0);
-
   useEffect(() => {
     document.documentElement.requestFullscreen?.().catch(() => {});
     const interval = setInterval(() => setTime(t => t + 1), 1000);
@@ -433,13 +499,11 @@ function FocusMode({ task, onExit }) {
       clearInterval(interval);
     };
   }, []);
-
   const formatTime = (s) => {
     const mins = Math.floor(s / 60);
     const secs = s % 60;
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
-
   return (
     <div className="focus-overlay">
       <button onClick={onExit} className="exit-btn">✕</button>
@@ -451,7 +515,7 @@ function FocusMode({ task, onExit }) {
   );
 }
 
-// ---------- Calendar View ----------
+// ---------- CALENDAR VIEW (unchanged) ----------
 function CalendarView({ selectedCountry, holidays, loading }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStart = startOfMonth(currentMonth);
@@ -525,7 +589,7 @@ function CalendarView({ selectedCountry, holidays, loading }) {
   );
 }
 
-// ---------- Analytics Widget ----------
+// ---------- ANALYTICS (unchanged) ----------
 function AnalyticsWidget({ tasks, completed, total, streak }) {
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
   const cats = tasks.reduce((acc, t) => {
@@ -615,14 +679,23 @@ function AnalyticsWidget({ tasks, completed, total, streak }) {
   );
 }
 
-// ---------- Settings Widget ----------
-function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, importTasks, clearCompleted }) {
+// ---------- SETTINGS WIDGET (with Timezone) ----------
+function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, importTasks, clearCompleted, timezone, setTimezone }) {
   const themes = [
     { id: 'default', name: 'Default', color: '#3b82f6' },
     { id: 'ocean', name: 'Ocean', color: '#10b981' },
     { id: 'sunset', name: 'Sunset', color: '#f97316' },
     { id: 'forest', name: 'Forest', color: '#22c55e' },
     { id: 'midnight', name: 'Midnight', color: '#8b5cf6' },
+  ];
+
+  // List of common timezones
+  const timezones = [
+    'America/New_York', 'America/Los_Angeles', 'America/Chicago', 'America/Denver',
+    'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Moscow',
+    'Asia/Kolkata', 'Asia/Dubai', 'Asia/Tokyo', 'Asia/Shanghai',
+    'Australia/Sydney', 'Pacific/Auckland', 'Africa/Johannesburg',
+    'America/Sao_Paulo', 'America/Mexico_City'
   ];
 
   return (
@@ -669,6 +742,28 @@ function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, i
           </div>
         </div>
 
+        {/* Timezone Selector */}
+        <div className="py-2">
+          <p className="text-sm mb-2" style={{ color: 'var(--text-secondary)' }}>🕐 Timezone</p>
+          <select
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2"
+            style={{ 
+              background: 'var(--bg-input)',
+              color: 'var(--text-primary)',
+              borderColor: 'var(--border-color)',
+              borderWidth: '1px',
+              ringColor: 'var(--accent)'
+            }}
+          >
+            <option value="auto">Auto (detect from browser)</option>
+            {timezones.map(tz => (
+              <option key={tz} value={tz}>{tz.replace('_', ' ')}</option>
+            ))}
+          </select>
+        </div>
+
         <button onClick={exportTasks} className="w-full flex items-center justify-between py-2.5 px-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
           <span className="text-sm flex items-center gap-2" style={{ color: 'var(--text-primary)' }}><Download size={18} /> Export Tasks</span>
           <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>JSON</span>
@@ -701,20 +796,23 @@ export default function App() {
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark' || 
-      (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return localStorage.getItem('themePreference') === 'dark' || 
+      (!localStorage.getItem('themePreference') && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
   const [editingId, setEditingId] = useState(null);
   const [view, setView] = useState('home');
   const [selectedCountry, setSelectedCountry] = useState('US');
   const [focusTask, setFocusTask] = useState(null);
 
-  // Gamification State
+  // Gamification
   const [points, setPoints] = useLocalStorage('points', 0);
   const [badges, setBadges] = useLocalStorage('badges', []);
 
-  // Theme State
+  // Theme
   const [theme, setTheme] = useLocalStorage('theme', 'default');
+
+  // Timezone – auto detect browser timezone, but allow manual override
+  const [timezone, setTimezone] = useLocalStorage('timezone', 'auto');
 
   const { text, isListening, startListening, error: voiceError } = useSpeechRecognition();
 
@@ -756,13 +854,11 @@ export default function App() {
     if (voiceError) toast.error(voiceError);
   }, [voiceError]);
 
-  // ---------- Push Notifications Check ----------
+  // ---------- Push Notifications ----------
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
-
-    // Check for due tasks daily
     const checkDueTasks = () => {
       const today = new Date();
       const dueTasks = tasks.filter(t => 
@@ -776,7 +872,7 @@ export default function App() {
       }
     };
     checkDueTasks();
-    const interval = setInterval(checkDueTasks, 3600000); // Check every hour
+    const interval = setInterval(checkDueTasks, 3600000);
     return () => clearInterval(interval);
   }, [tasks]);
 
@@ -789,16 +885,12 @@ export default function App() {
     }
   }, []);
 
-  // ---------- SMART DUE DATE PARSER (Level 1) ----------
+  // ---------- Smart Date Parser ----------
   const parseNaturalDate = (text) => {
     const now = new Date();
     const lower = text.toLowerCase();
-
-    // "today", "tomorrow"
     if (/today/i.test(lower)) return new Date(now.setHours(23, 59, 59, 999));
     if (/tomorrow/i.test(lower)) return new Date(now.setDate(now.getDate() + 1));
-
-    // "in X days/weeks"
     const inMatch = lower.match(/in\s+(\d+)\s+(day|days|week|weeks|month|months)/i);
     if (inMatch) {
       const num = parseInt(inMatch[1]);
@@ -807,8 +899,6 @@ export default function App() {
       if (unit.startsWith('week')) return addWeeks(now, num);
       if (unit.startsWith('month')) return addMonths(now, num);
     }
-
-    // "next Monday", "next Tuesday", etc.
     const nextMatch = lower.match(/next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
     if (nextMatch) {
       const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -819,18 +909,21 @@ export default function App() {
         return date;
       }
     }
-
-    // MM/DD format
     const match = text.match(/\d{1,2}\/\d{1,2}/);
     if (match) {
       const [m, d] = match[0].split('/');
       return new Date(now.getFullYear(), parseInt(m) - 1, parseInt(d));
     }
-
     return null;
   };
 
   // ---------- CRUD ----------
+  const determinePriority = (text) => {
+    if (/(urgent|asap|important|critical|immediate)/i.test(text)) return 'high';
+    if (/(low priority|someday|maybe|whenever)/i.test(text)) return 'low';
+    return 'medium';
+  };
+
   const handleAddTask = useCallback(async (taskText = input) => {
     if (!taskText.trim()) { 
       toast.error('Please enter a task'); 
@@ -857,29 +950,18 @@ export default function App() {
     toast.success('Task added! 🎯');
   }, [input, setTasks, categorizeTask]);
 
-  const determinePriority = (text) => {
-    if (/(urgent|asap|important|critical|immediate)/i.test(text)) return 'high';
-    if (/(low priority|someday|maybe|whenever)/i.test(text)) return 'low';
-    return 'medium';
-  };
-
-  // ---------- GAMIFICATION (Level 1) ----------
+  // ---------- Gamification ----------
   const awardPointsAndBadges = (task) => {
-    let earnedPoints = 10; // Base points
+    let earnedPoints = 10;
     if (task.subtasks?.length > 0) {
       earnedPoints += task.subtasks.filter(s => s.completed).length * 5;
     }
-    // Bonus for high priority
     if (task.priority === 'high') earnedPoints += 5;
-    // Bonus for completing early
     if (task.dueDate && new Date(task.dueDate) > new Date()) {
       earnedPoints += 3;
     }
-
     const newPoints = points + earnedPoints;
     setPoints(newPoints);
-
-    // Check for badges
     const newBadges = [...badges];
     if (newPoints >= 100 && !newBadges.includes('rookie')) {
       newBadges.push('rookie');
@@ -900,7 +982,7 @@ export default function App() {
     setBadges(newBadges);
   };
 
-  // ---------- SHARE TASK (Level 1) ----------
+  // ---------- Share ----------
   const shareTask = (task) => {
     const shareText = `📋 Task: ${task.title}\n📅 Due: ${task.dueDate ? format(new Date(task.dueDate), 'MMM d, yyyy') : 'No date'}\n🏷️ Category: ${task.category?.name || 'Personal'}\n⚡ Priority: ${task.priority || 'medium'}\n\n✅ Smart To-Do Pro`;
     if (navigator.share) {
@@ -911,7 +993,59 @@ export default function App() {
     }
   };
 
-  // ---------- toggleTask (Overridden) ----------
+  // ---------- AI Subtask Generator (Level 2) ----------
+  const generateSubtasks = async (taskId, taskTitle) => {
+    try {
+      toast('🤖 Generating subtasks...', { duration: 2000 });
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENROUTER_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'mistralai/mistral-7b-instruct:free',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert task breakdown assistant. Given a task title, suggest 3-5 subtasks that are actionable, specific, and logically ordered. Return only a JSON array of strings, e.g. ["Subtask 1", "Subtask 2"].'
+            },
+            {
+              role: 'user',
+              content: `Task: "${taskTitle}"`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 200,
+        }),
+      });
+      if (!response.ok) throw new Error('AI failed');
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '[]';
+      const subtaskArray = JSON.parse(content);
+      if (Array.isArray(subtaskArray) && subtaskArray.length > 0) {
+        setTasks(prev => prev.map(task => {
+          if (task.id === taskId) {
+            const newSubtasks = subtaskArray.map((title, idx) => ({
+              id: Date.now() + idx,
+              title: title,
+              completed: false,
+            }));
+            return { ...task, subtasks: [...(task.subtasks || []), ...newSubtasks] };
+          }
+          return task;
+        }));
+        toast.success('✨ Subtasks generated!');
+      } else {
+        toast.error('Could not generate subtasks. Please try again.');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to generate subtasks.');
+    }
+  };
+
+  // ---------- toggleTask ----------
   const toggleTask = (id) => {
     setTasks(prev => prev.map(task => {
       if (task.id === id) {
@@ -929,7 +1063,7 @@ export default function App() {
     }));
   };
 
-  // ---------- Subtask Functions ----------
+  // ---------- Subtask Operations ----------
   const addSubtask = (taskId, title) => {
     setTasks(prev => prev.map(task => {
       if (task.id === taskId) {
@@ -979,6 +1113,16 @@ export default function App() {
   const clearCompleted = () => {
     setTasks(prev => prev.filter(task => !task.completed));
     toast.success('Cleared completed tasks');
+  };
+
+  // ---------- Recurring ----------
+  const setRecurring = (taskId, type) => {
+    setTasks(prev => prev.map(task => {
+      if (task.id === taskId) {
+        return { ...task, recurring: type ? { type, interval: 1, nextOccurrence: null } : null };
+      }
+      return task;
+    }));
   };
 
   // ---------- Export/Import ----------
@@ -1047,10 +1191,13 @@ export default function App() {
   // ---------- Render Home ----------
   const renderHome = () => (
     <div className="space-y-4">
+      {/* Smart Suggestion (Level 2) */}
+      <SmartSuggestion tasks={tasks} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <StatsWidget completed={completed} total={total} streak={streak} points={points} badges={badges} />
         <div className="space-y-4">
-          <LiveClock countryCode={selectedCountry} />
+          <LiveClock countryCode={selectedCountry} manualTimezone={timezone === 'auto' ? null : timezone} />
           <PomodoroTimer />
         </div>
       </div>
@@ -1213,7 +1360,6 @@ export default function App() {
                           </span>
                         )}
                       </div>
-                      {/* Subtask Progress */}
                       {task.subtasks?.length > 0 && (
                         <div className="mt-2">
                           <div className="flex items-center gap-2">
@@ -1236,10 +1382,19 @@ export default function App() {
                           />
                         </div>
                       )}
+                      {/* AI Subtask Generator Button (Level 2) */}
+                      {!task.subtasks?.length && !task.completed && (
+                        <button
+                          onClick={() => generateSubtasks(task.id, task.title)}
+                          className="mt-2 text-xs flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          style={{ color: 'var(--accent)' }}
+                        >
+                          <Sparkles size={14} /> Generate Subtasks
+                        </button>
+                      )}
                     </div>
 
                     <div className="flex gap-1 flex-shrink-0">
-                      {/* Share Button */}
                       <button
                         onClick={() => shareTask(task)}
                         className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
@@ -1247,7 +1402,6 @@ export default function App() {
                       >
                         <Share2 size={16} className="text-green-400 hover:text-green-600" />
                       </button>
-                      {/* Focus Mode Button */}
                       <button
                         onClick={() => setFocusTask(task)}
                         className="p-1.5 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
@@ -1255,7 +1409,6 @@ export default function App() {
                       >
                         <Target size={16} className="text-purple-400 hover:text-purple-600" />
                       </button>
-                      {/* Recurring Button */}
                       <button
                         onClick={() => {
                           const types = ['daily', 'weekly', 'monthly'];
@@ -1273,14 +1426,12 @@ export default function App() {
                       >
                         <span className="text-sm">🔄</span>
                       </button>
-                      {/* Edit Button */}
                       <button
                         onClick={() => setEditingId(editingId === task.id ? null : task.id)}
                         className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                       >
                         <Edit2 size={16} className="text-gray-400" />
                       </button>
-                      {/* Delete Button */}
                       <button
                         onClick={() => deleteTask(task.id)}
                         className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
@@ -1297,16 +1448,6 @@ export default function App() {
       </AnimatePresence>
     </div>
   );
-
-  // ---------- Recurring ----------
-  const setRecurring = (taskId, type) => {
-    setTasks(prev => prev.map(task => {
-      if (task.id === taskId) {
-        return { ...task, recurring: type ? { type, interval: 1, nextOccurrence: null } : null };
-      }
-      return task;
-    }));
-  };
 
   // ---------- Main Render ----------
   return (
@@ -1459,6 +1600,8 @@ export default function App() {
                 exportTasks={exportTasks} 
                 importTasks={importTasks} 
                 clearCompleted={clearCompleted} 
+                timezone={timezone}
+                setTimezone={setTimezone}
               />
             )}
           </motion.div>
