@@ -5,7 +5,7 @@ import {
   Download, Upload, MapPin, Wind, Droplets, Loader2, X,
   RefreshCw, Award, Flame, Zap, Clock, Calendar, Target,
   Play, Pause, RotateCcw, ListChecks, Share2, Gift, Star, Crown,
-  Sparkles, TrendingUp
+  Sparkles, TrendingUp, Brain, Paperclip, FileText, Command
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays, addWeeks, addMonths, nextDay } from 'date-fns';
 import toast, { Toaster } from 'react-hot-toast';
@@ -16,9 +16,10 @@ import { categorizeWithAI } from './services/aiService';
 import { getPriorityColor, getCategoryColor } from './utils/helpers';
 
 // ============================================================
-// COMPONENTS
+// COMPONENTS (All previous components, plus new ones)
 // ============================================================
 
+// ---------- Progress Bar ----------
 function ProgressBar({ progress }) {
   return (
     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
@@ -33,6 +34,7 @@ function ProgressBar({ progress }) {
   );
 }
 
+// ---------- Empty State ----------
 function EmptyState({ message, sub }) {
   return (
     <div className="text-center py-16">
@@ -50,6 +52,7 @@ function EmptyState({ message, sub }) {
   );
 }
 
+// ---------- Footer ----------
 function Footer() {
   return (
     <footer className="text-center py-4 text-sm border-t" style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}>
@@ -67,6 +70,7 @@ function Footer() {
   );
 }
 
+// ---------- Bottom Navigation ----------
 function BottomNav({ view, setView }) {
   const tabs = [
     { id: 'home', icon: '🏠', label: 'Home' },
@@ -94,6 +98,7 @@ function BottomNav({ view, setView }) {
   );
 }
 
+// ---------- Weather Widget (unchanged) ----------
 function WeatherWidget() {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,20 +110,17 @@ function WeatherWidget() {
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto&current=temperature_2m,relative_humidity_2m,wind_speed_10m`
       );
       const data = await res.json();
-      let city = '';
-      let country = '';
+      let city = '', country = '';
       try {
         const geoRes = await fetch(
           `https://geocoding-api.open-meteo.com/v1/search?latitude=${lat}&longitude=${lon}&count=1`
         );
         const geoData = await geoRes.json();
-        if (geoData.results && geoData.results.length > 0) {
+        if (geoData.results?.length) {
           city = geoData.results[0].name || '';
           country = geoData.results[0].country || '';
         }
-      } catch (e) {
-        // fallback
-      }
+      } catch (e) {}
       if (!city) {
         const ipRes = await fetch('https://ipapi.co/json/');
         const ipData = await ipRes.json();
@@ -132,12 +134,8 @@ function WeatherWidget() {
         humidity: data.current?.relative_humidity_2m || 0,
         code: data.current_weather.weathercode || 0,
       });
-    } catch (e) {
-      console.error(e);
-      setLocation('Weather unavailable');
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
@@ -148,17 +146,10 @@ function WeatherWidget() {
           fetch('https://ipapi.co/json/')
             .then(res => res.json())
             .then(data => {
-              if (data.latitude && data.longitude) {
-                fetchWeather(data.latitude, data.longitude);
-              } else {
-                setLoading(false);
-                setLocation('Location unavailable');
-              }
+              if (data.latitude && data.longitude) fetchWeather(data.latitude, data.longitude);
+              else { setLoading(false); setLocation('Location unavailable'); }
             })
-            .catch(() => {
-              setLoading(false);
-              setLocation('Location unavailable');
-            });
+            .catch(() => { setLoading(false); setLocation('Location unavailable'); });
         }
       );
     } else {
@@ -222,6 +213,7 @@ function WeatherWidget() {
   );
 }
 
+// ---------- Live Clock (with manual timezone) ----------
 function LiveClock({ countryCode = 'US', manualTimezone = null }) {
   const [time, setTime] = useState(new Date());
 
@@ -291,6 +283,7 @@ function LiveClock({ countryCode = 'US', manualTimezone = null }) {
   );
 }
 
+// ---------- Stats Widget ----------
 function StatsWidget({ completed, total, streak, points, badges }) {
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
   return (
@@ -342,7 +335,7 @@ function StatsWidget({ completed, total, streak, points, badges }) {
   );
 }
 
-// ---------- SMART SUGGESTION ----------
+// ---------- Smart Suggestion (Level 2) ----------
 function SmartSuggestion({ tasks }) {
   const suggestion = useMemo(() => {
     if (tasks.length === 0) return null;
@@ -387,7 +380,7 @@ function SmartSuggestion({ tasks }) {
   );
 }
 
-// ---------- SUBTASK LIST ----------
+// ---------- Subtask List ----------
 function SubtaskList({ subtasks, onToggle, onAdd, onDelete }) {
   const [newSubtask, setNewSubtask] = useState('');
   const handleAdd = () => {
@@ -425,7 +418,7 @@ function SubtaskList({ subtasks, onToggle, onAdd, onDelete }) {
   );
 }
 
-// ---------- POMODORO ----------
+// ---------- Pomodoro Timer ----------
 function PomodoroTimer() {
   const [minutes, setMinutes] = useState(25);
   const [seconds, setSeconds] = useState(0);
@@ -482,7 +475,7 @@ function PomodoroTimer() {
   );
 }
 
-// ---------- FOCUS MODE ----------
+// ---------- Focus Mode ----------
 function FocusMode({ task, onExit }) {
   const [time, setTime] = useState(0);
   useEffect(() => {
@@ -509,7 +502,7 @@ function FocusMode({ task, onExit }) {
   );
 }
 
-// ---------- CALENDAR VIEW ----------
+// ---------- Calendar View ----------
 function CalendarView({ selectedCountry, holidays, loading }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const monthStart = startOfMonth(currentMonth);
@@ -578,7 +571,7 @@ function CalendarView({ selectedCountry, holidays, loading }) {
   );
 }
 
-// ---------- ANALYTICS ----------
+// ---------- Analytics Widget ----------
 function AnalyticsWidget({ tasks, completed, total, streak }) {
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
   const cats = tasks.reduce((acc, t) => {
@@ -668,7 +661,7 @@ function AnalyticsWidget({ tasks, completed, total, streak }) {
   );
 }
 
-// ---------- SETTINGS WIDGET ----------
+// ---------- Settings Widget (with theme, dark mode, timezone) ----------
 function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, importTasks, clearCompleted, timezone, setTimezone }) {
   const themes = [
     { id: 'default', name: 'Default', color: '#3b82f6' },
@@ -774,6 +767,140 @@ function SettingsWidget({ darkMode, setDarkMode, theme, setTheme, exportTasks, i
 }
 
 // ============================================================
+// LEVEL 3 NEW COMPONENTS
+// ============================================================
+
+// ---------- File Attachment ----------
+function FileAttachment({ task, onAttach, onRemove }) {
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target.result;
+      onAttach(task.id, { name: file.name, type: file.type, data: base64 });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const attachment = task.attachment;
+  if (attachment) {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <Paperclip size={14} />
+        <span>{attachment.name}</span>
+        <button onClick={() => onRemove(task.id)} className="text-red-400 hover:text-red-600">
+          <X size={14} />
+        </button>
+        {attachment.type.startsWith('image/') && (
+          <img src={attachment.data} alt="attachment" className="h-8 w-8 object-cover rounded" />
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="mt-2">
+      <label className="text-xs flex items-center gap-1 cursor-pointer" style={{ color: 'var(--accent)' }}>
+        <Paperclip size={14} /> Attach file
+        <input type="file" onChange={handleFileChange} className="hidden" />
+      </label>
+    </div>
+  );
+}
+
+// ---------- AI Daily Plan Button ----------
+function DailyPlanButton({ tasks, onPlanGenerated }) {
+  const [loading, setLoading] = useState(false);
+
+  const generatePlan = async () => {
+    if (tasks.length === 0) {
+      toast('No tasks to plan.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+      let plan = [];
+      if (apiKey && apiKey !== 'your_openrouter_api_key_here') {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: 'mistralai/mistral-7b-instruct:free',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a productivity assistant. Based on the list of tasks, suggest the best order to work on them today. Return a JSON array of task titles in the recommended order.'
+              },
+              {
+                role: 'user',
+                content: `Tasks: ${tasks.map(t => `"${t.title}" (due: ${t.dueDate ? format(new Date(t.dueDate), 'MMM d') : 'none'}, priority: ${t.priority})`).join('; ')}`
+              }
+            ],
+            temperature: 0.5,
+            max_tokens: 300,
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || '[]';
+          const clean = content.replace(/```json|```/g, '').trim();
+          plan = JSON.parse(clean);
+        }
+      }
+      if (!plan || !Array.isArray(plan) || plan.length === 0) {
+        // Fallback: sort by priority + due date
+        plan = [...tasks]
+          .filter(t => !t.completed)
+          .sort((a, b) => {
+            const pOrder = { high: 0, medium: 1, low: 2 };
+            const pa = pOrder[a.priority] ?? 1;
+            const pb = pOrder[b.priority] ?? 1;
+            if (pa !== pb) return pa - pb;
+            const da = a.dueDate ? new Date(a.dueDate) : new Date(9999, 11, 31);
+            const db = b.dueDate ? new Date(b.dueDate) : new Date(9999, 11, 31);
+            return da - db;
+          })
+          .map(t => t.title);
+      }
+      onPlanGenerated(plan);
+    } catch (error) {
+      console.error('Daily plan error:', error);
+      toast('Could not generate plan, using fallback.');
+      const fallback = tasks
+        .filter(t => !t.completed)
+        .sort((a, b) => {
+          const pOrder = { high: 0, medium: 1, low: 2 };
+          const pa = pOrder[a.priority] ?? 1;
+          const pb = pOrder[b.priority] ?? 1;
+          if (pa !== pb) return pa - pb;
+          const da = a.dueDate ? new Date(a.dueDate) : new Date(9999, 11, 31);
+          const db = b.dueDate ? new Date(b.dueDate) : new Date(9999, 11, 31);
+          return da - db;
+        })
+        .map(t => t.title);
+      onPlanGenerated(fallback);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={generatePlan}
+      disabled={loading}
+      className="flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors"
+      style={{ background: 'var(--accent)' }}
+    >
+      {loading ? <Loader2 size={18} className="animate-spin" /> : <Brain size={18} />}
+      {loading ? 'Planning...' : 'AI Daily Plan'}
+    </button>
+  );
+}
+
+// ---------- Voice Command Processor (integrated in main component) ----------
+
+// ============================================================
 // MAIN APP
 // ============================================================
 
@@ -795,6 +922,7 @@ export default function App() {
   const [badges, setBadges] = useLocalStorage('badges', []);
   const [theme, setTheme] = useLocalStorage('theme', 'default');
   const [timezone, setTimezone] = useLocalStorage('timezone', 'auto');
+  const [dailyPlan, setDailyPlan] = useState([]); // Level 3
 
   const { text, isListening, startListening, error: voiceError } = useSpeechRecognition();
 
@@ -814,11 +942,67 @@ export default function App() {
     }
   }, [selectedCountry, holidayYear]);
 
+  // ---------- Voice Command Processor (Level 3) ----------
+  const processVoiceCommand = useCallback((command) => {
+    const lower = command.toLowerCase().trim();
+    // Complete task X
+    const completeMatch = lower.match(/complete\s+(.+)/i);
+    if (completeMatch) {
+      const title = completeMatch[1].trim();
+      const task = tasks.find(t => t.title.toLowerCase() === title.toLowerCase() && !t.completed);
+      if (task) {
+        toggleTask(task.id);
+        toast(`✅ Completed: ${task.title}`);
+      } else {
+        toast(`No pending task found: "${title}"`);
+      }
+      return true;
+    }
+    // Delete task X
+    const deleteMatch = lower.match(/delete\s+(.+)/i);
+    if (deleteMatch) {
+      const title = deleteMatch[1].trim();
+      const task = tasks.find(t => t.title.toLowerCase() === title.toLowerCase());
+      if (task) {
+        deleteTask(task.id);
+        toast(`🗑️ Deleted: ${task.title}`);
+      } else {
+        toast(`No task found: "${title}"`);
+      }
+      return true;
+    }
+    // Show pending tasks
+    if (lower.includes('show pending') || lower.includes('show tasks')) {
+      const pending = tasks.filter(t => !t.completed);
+      if (pending.length === 0) {
+        toast('🎉 No pending tasks!');
+      } else {
+        const list = pending.map(t => `• ${t.title}`).join('\n');
+        toast(`📋 Pending tasks:\n${list}`, { duration: 5000 });
+      }
+      return true;
+    }
+    // Add task X (if not caught by auto-add)
+    const addMatch = lower.match(/add\s+(.+)/i);
+    if (addMatch) {
+      const title = addMatch[1].trim();
+      handleAddTask(title);
+      return true;
+    }
+    return false;
+  }, [tasks]);
+
   // ---------- Effects ----------
   useEffect(() => {
     if (text && text.length > 2) {
-      handleAddTask(text);
-      setInput('');
+      // If voice input contains a command, process it; otherwise, auto-add task
+      const handled = processVoiceCommand(text);
+      if (!handled) {
+        handleAddTask(text);
+        setInput('');
+      } else {
+        setInput('');
+      }
     }
   }, [text]);
 
@@ -926,6 +1110,7 @@ export default function App() {
       subtasks: [],
       recurring: null,
       notes: '',
+      attachment: null, // Level 3
     };
     setTasks(prev => [newTask, ...prev]);
     setInput('');
@@ -975,10 +1160,9 @@ export default function App() {
     }
   };
 
-  // ---------- AI Subtask Generator (with fallback) ----------
+  // ---------- AI Subtask Generator ----------
   const generateSubtasks = async (taskId, taskTitle) => {
     toast.loading('🤖 Generating subtasks...', { id: 'gen-subtasks' });
-
     const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
     let subtaskArray = [];
 
@@ -986,10 +1170,7 @@ export default function App() {
       try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
           body: JSON.stringify({
             model: 'mistralai/mistral-7b-instruct:free',
             messages: [
@@ -1006,13 +1187,12 @@ export default function App() {
             max_tokens: 200,
           }),
         });
-
         if (response.ok) {
           const data = await response.json();
           const content = data.choices?.[0]?.message?.content || '[]';
           const clean = content.replace(/```json|```/g, '').trim();
           subtaskArray = JSON.parse(clean);
-          if (!Array.isArray(subtaskArray) || subtaskArray.length === 0) throw new Error('Invalid subtask array');
+          if (!Array.isArray(subtaskArray) || subtaskArray.length === 0) throw new Error('Invalid');
         } else {
           console.warn('OpenRouter API error:', response.status);
         }
@@ -1020,30 +1200,17 @@ export default function App() {
         console.error('AI subtask generation error:', error);
       }
     }
-
-    // Fallback
     if (!subtaskArray || subtaskArray.length === 0) {
-      subtaskArray = [
-        `Plan and research ${taskTitle}`,
-        `Gather necessary resources for ${taskTitle}`,
-        `Execute ${taskTitle}`,
-        `Review and finalize ${taskTitle}`
-      ];
+      subtaskArray = [`Plan and research ${taskTitle}`, `Gather necessary resources for ${taskTitle}`, `Execute ${taskTitle}`, `Review and finalize ${taskTitle}`];
       toast.info('Used fallback subtasks (AI unavailable)', { id: 'gen-subtasks' });
     }
-
     setTasks(prev => prev.map(task => {
       if (task.id === taskId) {
-        const newSubtasks = subtaskArray.map((title, idx) => ({
-          id: Date.now() + idx,
-          title: title,
-          completed: false,
-        }));
+        const newSubtasks = subtaskArray.map((title, idx) => ({ id: Date.now() + idx, title, completed: false }));
         return { ...task, subtasks: [...(task.subtasks || []), ...newSubtasks] };
       }
       return task;
     }));
-
     toast.success(`✨ ${subtaskArray.length} subtasks added!`, { id: 'gen-subtasks' });
   };
 
@@ -1052,17 +1219,32 @@ export default function App() {
     setTasks(prev => prev.map(task => {
       if (task.id === id) {
         const completed = !task.completed;
-        if (completed) {
-          awardPointsAndBadges(task);
-        }
-        return { 
-          ...task, 
-          completed: completed,
-          completedAt: completed ? new Date() : null 
-        };
+        if (completed) awardPointsAndBadges(task);
+        return { ...task, completed, completedAt: completed ? new Date() : null };
       }
       return task;
     }));
+  };
+
+  // ---------- File Attachment (Level 3) ----------
+  const handleAttachFile = (taskId, fileData) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId ? { ...task, attachment: fileData } : task
+    ));
+    toast.success('File attached!');
+  };
+
+  const handleRemoveFile = (taskId) => {
+    setTasks(prev => prev.map(task => 
+      task.id === taskId ? { ...task, attachment: null } : task
+    ));
+    toast.success('File removed.');
+  };
+
+  // ---------- Daily Plan ----------
+  const handleDailyPlanGenerated = (plan) => {
+    setDailyPlan(plan);
+    toast('📅 Daily plan generated! Check the list.');
   };
 
   // ---------- Subtask Operations ----------
@@ -1079,12 +1261,9 @@ export default function App() {
   const toggleSubtask = (taskId, subtaskId) => {
     setTasks(prev => prev.map(task => {
       if (task.id === taskId) {
-        return {
-          ...task,
-          subtasks: task.subtasks?.map(sub => 
-            sub.id === subtaskId ? { ...sub, completed: !sub.completed } : sub
-          )
-        };
+        return { ...task, subtasks: task.subtasks?.map(sub => 
+          sub.id === subtaskId ? { ...sub, completed: !sub.completed } : sub
+        ) };
       }
       return task;
     }));
@@ -1180,10 +1359,7 @@ export default function App() {
     for (let i = 0; i < 30; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      if (tasks.some(t => 
-        t.completedAt && 
-        new Date(t.completedAt).toDateString() === d.toDateString()
-      )) {
+      if (tasks.some(t => t.completedAt && new Date(t.completedAt).toDateString() === d.toDateString())) {
         s++;
       } else break;
     }
@@ -1193,6 +1369,21 @@ export default function App() {
   // ---------- Render Home ----------
   const renderHome = () => (
     <div className="space-y-4">
+      {/* Daily Plan Button */}
+      <div className="flex justify-end">
+        <DailyPlanButton tasks={tasks} onPlanGenerated={handleDailyPlanGenerated} />
+      </div>
+      {dailyPlan.length > 0 && (
+        <div className="card">
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>📅 Today's Plan</h3>
+          <ol className="list-decimal list-inside text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
+            {dailyPlan.map((title, i) => (
+              <li key={i}>{title}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       <SmartSuggestion tasks={tasks} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1369,7 +1560,6 @@ export default function App() {
                           />
                         </div>
                       )}
-                      {/* AI Subtask Generator */}
                       {!task.subtasks?.length && !task.completed && (
                         <button
                           onClick={() => generateSubtasks(task.id, task.title)}
@@ -1379,6 +1569,8 @@ export default function App() {
                           <Sparkles size={14} /> Generate Subtasks
                         </button>
                       )}
+                      {/* File Attachment (Level 3) */}
+                      <FileAttachment task={task} onAttach={handleAttachFile} onRemove={handleRemoveFile} />
                     </div>
 
                     <div className="flex gap-1 flex-shrink-0">
@@ -1451,12 +1643,7 @@ export default function App() {
         }}
       />
       
-      {focusTask && (
-        <FocusMode 
-          task={focusTask} 
-          onExit={() => setFocusTask(null)} 
-        />
-      )}
+      {focusTask && <FocusMode task={focusTask} onExit={() => setFocusTask(null)} />}
       
       <header className="sticky top-0 z-10 glass border-b" style={{ borderColor: 'var(--border-color)' }}>
         <div className="max-w-4xl mx-auto px-4 py-3">
