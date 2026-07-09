@@ -155,4 +155,8 @@ If you like this project, please give it a ⭐ on GitHub and share it with other
 
 ---
 
+<<<<<<< HEAD
 **Made with ❤️ by Manish Rajdoot**
+=======
+**Made with ❤️ by Manish Rajdoot**
+>>>>>>> fd533c9631ff67323e79219da74538466a769d5b
